@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>習慣トラッカー</title>
 <style>
-  :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; }
+  :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --success: #166534; --danger: #991b1b; }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
   body { background: var(--bg); color: var(--text); padding-bottom: 60px; }
   
   /* ナビゲーション */
   .nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
-  .nav button { flex: 1; padding: 12px; border: none; background: none; font-weight: bold; color: #64748b; font-size: 14px; }
-  .nav button.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+  .nav button { flex: 1; padding: 14px 4px; border: none; background: none; font-weight: bold; color: #64748b; font-size: 13px; cursor: pointer; }
+  .nav button.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
 
   .container { padding: 16px; max-width: 600px; margin: 0 auto; }
   
-  /* 個別ページスタイル */
+  /* 個別ページ */
   .habit-tabs { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 8px; margin-bottom: 12px; }
-  .habit-chip { padding: 6px 12px; border-radius: 16px; background: #e2e8f0; border: none; white-space: nowrap; font-size: 13px; }
+  .habit-chip { padding: 6px 12px; border-radius: 16px; background: #e2e8f0; border: none; white-space: nowrap; font-size: 13px; cursor: pointer; }
   .habit-chip.active { background: var(--primary); color: #fff; }
 
   .card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
@@ -33,28 +33,39 @@
   .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
   .cal-header { font-size: 12px; color: #64748b; padding: 4px 0; }
   .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid var(--border); background: #fff; font-size: 12px; cursor: pointer; }
-  .cal-day.state-ok { background: #dcfce7; border-color: #86efac; color: #166534; font-weight: bold; }
-  .cal-day.state-ng { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+  .cal-day.state-ok { background: #dcfce7; border-color: #86efac; color: var(--success); font-weight: bold; }
+  .cal-day.state-ng { background: #fee2e2; border-color: #fca5a5; color: var(--danger); }
 
-  .comment-box textarea { width: 100%; height: 80px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; resize: none; margin-top: 8px; }
+  .comment-box textarea { width: 100%; height: 80px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; resize: none; margin-top: 8px; font-size: 13px; }
 
   /* 集計表（マトリクス） */
   .matrix-wrapper { overflow-x: auto; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
   table { border-collapse: collapse; font-size: 12px; width: 100%; }
   th, td { padding: 8px 6px; text-align: center; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); white-space: nowrap; }
-  
-  /* 左列固定（Sticky） */
   .col-title { position: sticky; left: 0; background: #fff; z-index: 2; width: 90px; max-width: 90px; text-align: left; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
   .col-curr { position: sticky; left: 90px; background: #fff; z-index: 2; width: 45px; }
   .col-total { position: sticky; left: 135px; background: #fff; z-index: 2; width: 45px; border-right: 2px solid #cbd5e1; }
   th.col-title, th.col-curr, th.col-total { background: #f1f5f9; z-index: 3; }
+
+  /* 設定画面スタイル */
+  .settings-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-id { font-size: 12px; font-weight: bold; color: #64748b; width: 24px; text-align: center; }
+  .input-title { flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+  .input-target { width: 65px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; text-align: center; }
+  
+  .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 12px; }
+  .btn-outline { width: 100%; background: transparent; color: #64748b; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+  .alert-toast { background: #dcfce7; color: var(--success); padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; text-align: center; display: none; font-weight: bold; }
 </style>
 </head>
 <body>
 
+<!-- 上部ナビゲーション -->
 <div class="nav">
   <button id="btnTabSingle" class="active" onclick="switchView('single')">個別習慣</button>
   <button id="btnTabMatrix" onclick="switchView('matrix')">全体集計表</button>
+  <button id="btnTabSettings" onclick="switchView('settings')">⚙ 設定</button>
 </div>
 
 <div class="container">
@@ -66,9 +77,9 @@
       <div class="header-area">
         <h2 id="habitTitle" style="font-size: 18px;">習慣名</h2>
         <div class="month-picker">
-          <span onclick="changeMonth(-1)" style="cursor:pointer">◀</span>
+          <span onclick="changeMonth(-1)" style="cursor:pointer; padding: 0 4px;">◀</span>
           <span id="currentMonthLabel">2026年10月</span>
-          <span onclick="changeMonth(1)" style="cursor:pointer">▶</span>
+          <span onclick="changeMonth(1)" style="cursor:pointer; padding: 0 4px;">▶</span>
         </div>
       </div>
 
@@ -81,8 +92,8 @@
       <div class="calendar-grid" id="calendar"></div>
 
       <div class="comment-box" style="margin-top: 16px;">
-        <label style="font-size: 13px; font-weight: bold;">当月のコメント・メモ</label>
-        <textarea id="habitComment" placeholder="気づきや振り返りを入力..." oninput="saveComment()"></textarea>
+        <label style="font-size: 13px; font-weight: bold;">当月の振り返りコメント</label>
+        <textarea id="habitComment" placeholder="気づきや反省を入力..." oninput="saveComment()"></textarea>
       </div>
     </div>
   </div>
@@ -94,11 +105,33 @@
       <table id="matrixTable"></table>
     </div>
   </div>
+
+  <!-- ⚙ 設定画面 -->
+  <div id="viewSettings" style="display: none;">
+    <div class="card">
+      <h3 style="font-size: 16px; margin-bottom: 8px;">習慣と目標得点の編集</h3>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">習慣の名前と月間目標点数をここで編集できます。</p>
+      
+      <div id="settingsToast" class="alert-toast">保存しました！</div>
+
+      <div style="display: flex; font-size: 12px; color: #64748b; font-weight: bold; margin-bottom: 6px;">
+        <span style="width: 24px; text-align: center;">#</span>
+        <span style="flex: 1; padding-left: 8px;">習慣タイトル</span>
+        <span style="width: 65px; text-align: center;">目標(点)</span>
+      </div>
+
+      <div id="settingsList"></div>
+
+      <button class="btn-primary" onclick="saveSettingsFromForm()">設定を保存する</button>
+      <button class="btn-outline" onclick="addHabitItem()">＋ 習慣を追加する</button>
+      <button class="btn-outline" style="color: #ef4444; border-color: #fecaca; margin-top: 16px;" onclick="resetHabitsDefault()">初期状態に戻す</button>
+    </div>
+  </div>
 </div>
 
 <script>
-  // 初期習慣10個の設定
-  const HABITS = [
+  // 初期デフォルト習慣
+  const DEFAULT_HABITS = [
     { id: 1, title: "読書30分", target: 25 },
     { id: 2, title: "ストレッチ", target: 28 },
     { id: 3, title: "水分2L", target: 30 },
@@ -112,9 +145,19 @@
   ];
 
   let currentHabitIndex = 0;
-  let currentDate = new Date(2026, 9, 1); // 2026年10月
+  let currentDate = new Date(2026, 9, 1);
 
-  // ストレージからデータ取得
+  // 習慣設定の読み出し＆保存
+  function getHabits() {
+    const saved = localStorage.getItem('habit_tracker_config');
+    return saved ? JSON.parse(saved) : DEFAULT_HABITS;
+  }
+
+  function setHabits(habits) {
+    localStorage.setItem('habit_tracker_config', JSON.stringify(habits));
+  }
+
+  // 記録データの読み出し＆保存
   function loadData() {
     return JSON.parse(localStorage.getItem('habit_tracker_data') || '{"records":{}, "comments":{}}');
   }
@@ -127,13 +170,19 @@
     return `${year}-${String(month + 1).padStart(2, '0')}_${habitId}`;
   }
 
-  // 画面切り替え
+  // 画面タブ切り替え
   function switchView(type) {
     document.getElementById('viewSingle').style.display = type === 'single' ? 'block' : 'none';
     document.getElementById('viewMatrix').style.display = type === 'matrix' ? 'block' : 'none';
+    document.getElementById('viewSettings').style.display = type === 'settings' ? 'block' : 'none';
+
     document.getElementById('btnTabSingle').className = type === 'single' ? 'active' : '';
     document.getElementById('btnTabMatrix').className = type === 'matrix' ? 'active' : '';
+    document.getElementById('btnTabSettings').className = type === 'settings' ? 'active' : '';
+
+    if (type === 'single') renderSingle();
     if (type === 'matrix') renderMatrix();
+    if (type === 'settings') renderSettings();
   }
 
   function changeMonth(delta) {
@@ -141,20 +190,23 @@
     renderSingle();
   }
 
-  // 個別画面レンダリング
+  // 個別画面描画
   function renderSingle() {
-    const habit = HABITS[currentHabitIndex];
+    const habits = getHabits();
+    if (currentHabitIndex >= habits.length) currentHabitIndex = 0;
+    const habit = habits[currentHabitIndex];
+
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 
-    document.getElementById('habitTitle').innerText = habit.title;
+    document.getElementById('habitTitle').innerText = habit ? habit.title : "習慣がありません";
     document.getElementById('currentMonthLabel').innerText = `${year}年${month + 1}月`;
-    document.getElementById('targetScore').innerText = habit.target;
+    document.getElementById('targetScore').innerText = habit ? habit.target : 0;
 
-    // タブレンダリング
+    // タブ描画
     const tabsContainer = document.getElementById('habitTabs');
     tabsContainer.innerHTML = '';
-    HABITS.forEach((h, idx) => {
+    habits.forEach((h, idx) => {
       const btn = document.createElement('button');
       btn.className = `habit-chip ${idx === currentHabitIndex ? 'active' : ''}`;
       btn.innerText = h.title;
@@ -162,11 +214,13 @@
       tabsContainer.appendChild(btn);
     });
 
+    if (!habit) return;
+
     const data = loadData();
     const key = getKey(year, month, habit.id);
     const monthRecords = data.records[key] || {};
 
-    // 得点計算（当月 & 累計）
+    // 得点集計
     let curr = 0;
     Object.values(monthRecords).forEach(v => { if (v === 1) curr++; });
     document.getElementById('currScore').innerText = curr;
@@ -179,7 +233,7 @@
     });
     document.getElementById('totalScore').innerText = total;
 
-    // コメント設定
+    // コメント
     document.getElementById('habitComment').value = (data.comments && data.comments[key]) || '';
 
     // カレンダー構築
@@ -192,25 +246,17 @@
     const firstDay = new Date(year, month, 1).getDay();
     const lastDate = new Date(year, month + 1, 0).getDate();
 
-    for (let i = 0; i < firstDay; i++) {
-      calEl.innerHTML += `<div></div>`;
-    }
+    for (let i = 0; i < firstDay; i++) calEl.innerHTML += `<div></div>`;
 
     for (let day = 1; day <= lastDate; day++) {
-      const status = monthRecords[day] || 0; // 0:なし, 1:◯, -1:×
+      const status = monthRecords[day] || 0;
       const cell = document.createElement('div');
       cell.className = `cal-day ${status === 1 ? 'state-ok' : status === -1 ? 'state-ng' : ''}`;
       cell.innerHTML = `<span>${day}</span><span style="font-size:10px;">${status === 1 ? '◯' : status === -1 ? '×' : '-'}</span>`;
-      
-      // タップで状態切り替え (なし -> ◯ -> × -> なし)
       cell.onclick = () => {
-        let nextStatus = 0;
-        if (status === 0) nextStatus = 1;
-        else if (status === 1) nextStatus = -1;
-        else nextStatus = 0;
-
+        let next = status === 0 ? 1 : status === 1 ? -1 : 0;
         if (!data.records[key]) data.records[key] = {};
-        data.records[key][day] = nextStatus;
+        data.records[key][day] = next;
         saveData(data);
         renderSingle();
       };
@@ -219,15 +265,19 @@
   }
 
   function saveComment() {
+    const habits = getHabits();
+    const habit = habits[currentHabitIndex];
+    if (!habit) return;
     const data = loadData();
-    const key = getKey(currentDate.getFullYear(), currentDate.getMonth(), HABITS[currentHabitIndex].id);
+    const key = getKey(currentDate.getFullYear(), currentDate.getMonth(), habit.id);
     if (!data.comments) data.comments = {};
     data.comments[key] = document.getElementById('habitComment').value;
     saveData(data);
   }
 
-  // 全体集計表レンダリング
+  // 集計表描画
   function renderMatrix() {
+    const habits = getHabits();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const lastDate = new Date(year, month + 1, 0).getDate();
@@ -237,18 +287,14 @@
 
     let html = '<thead><tr>';
     html += '<th class="col-title">習慣項目</th><th class="col-curr">当月</th><th class="col-total">累計</th>';
-    for (let d = 1; d <= lastDate; d++) {
-      html += `<th>${d}</th>`;
-    }
+    for (let d = 1; d <= lastDate; d++) html += `<th>${d}</th>`;
     html += '</tr></thead><tbody>';
 
-    HABITS.forEach(h => {
+    habits.forEach(h => {
       const key = getKey(year, month, h.id);
       const monthRecs = data.records[key] || {};
-      
       let curr = 0;
       Object.values(monthRecs).forEach(v => { if (v === 1) curr++; });
-      
       let total = 0;
       Object.keys(data.records).forEach(k => {
         if (k.endsWith(`_${h.id}`)) {
@@ -260,11 +306,10 @@
       html += `<td class="col-title">${h.title}</td>`;
       html += `<td class="col-curr">${curr}</td>`;
       html += `<td class="col-total">${total}</td>`;
-
       for (let d = 1; d <= lastDate; d++) {
         const val = monthRecs[d];
         const mark = val === 1 ? '◯' : val === -1 ? '×' : '-';
-        const color = val === 1 ? '#166534' : val === -1 ? '#991b1b' : '#94a3b8';
+        const color = val === 1 ? 'var(--success)' : val === -1 ? 'var(--danger)' : '#94a3b8';
         html += `<td style="color:${color}; font-weight:${val !== 0 ? 'bold':'normal'};">${mark}</td>`;
       }
       html += `</tr>`;
@@ -272,6 +317,64 @@
 
     html += '</tbody>';
     document.getElementById('matrixTable').innerHTML = html;
+  }
+
+  // 設定画面の描画
+  function renderSettings() {
+    const habits = getHabits();
+    const listEl = document.getElementById('settingsList');
+    listEl.innerHTML = '';
+
+    habits.forEach((h, index) => {
+      const row = document.createElement('div');
+      row.className = 'settings-row';
+      row.innerHTML = `
+        <span class="settings-id">${index + 1}</span>
+        <input type="text" class="input-title" value="${h.title}" data-id="${h.id}" placeholder="習慣名">
+        <input type="number" class="input-target" value="${h.target}" placeholder="目標">
+      `;
+      listEl.appendChild(row);
+    });
+  }
+
+  // フォームの内容を保存
+  function saveSettingsFromForm() {
+    const listEl = document.getElementById('settingsList');
+    const rows = listEl.querySelectorAll('.settings-row');
+    const newHabits = [];
+
+    rows.forEach(r => {
+      const titleInput = r.querySelector('.input-title');
+      const targetInput = r.querySelector('.input-target');
+      const id = parseInt(titleInput.dataset.id, 10);
+      const title = titleInput.value.trim() || `習慣 ${id}`;
+      const target = parseInt(targetInput.value, 10) || 0;
+      newHabits.push({ id, title, target });
+    });
+
+    setHabits(newHabits);
+
+    // トースト通知
+    const toast = document.getElementById('settingsToast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  }
+
+  // 習慣の新規追加
+  function addHabitItem() {
+    const habits = getHabits();
+    const maxId = habits.reduce((max, h) => Math.max(max, h.id), 0);
+    habits.push({ id: maxId + 1, title: `新しい習慣`, target: 20 });
+    setHabits(habits);
+    renderSettings();
+  }
+
+  // デフォルトに戻す
+  function resetHabitsDefault() {
+    if (confirm("習慣名と目標を初期状態に戻しますか？（過去の記録データ自体は消えません）")) {
+      setHabits(DEFAULT_HABITS);
+      renderSettings();
+    }
   }
 
   renderSingle();
