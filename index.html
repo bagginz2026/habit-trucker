@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>習慣トラッカー</title>
+<style>
+  :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+  body { background: var(--bg); color: var(--text); padding-bottom: 60px; }
+  
+  /* ナビゲーション */
+  .nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  .nav button { flex: 1; padding: 12px; border: none; background: none; font-weight: bold; color: #64748b; font-size: 14px; }
+  .nav button.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+
+  .container { padding: 16px; max-width: 600px; margin: 0 auto; }
+  
+  /* 個別ページスタイル */
+  .habit-tabs { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 8px; margin-bottom: 12px; }
+  .habit-chip { padding: 6px 12px; border-radius: 16px; background: #e2e8f0; border: none; white-space: nowrap; font-size: 13px; }
+  .habit-chip.active { background: var(--primary); color: #fff; }
+
+  .card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .month-picker { font-size: 14px; font-weight: bold; }
+  
+  .score-box { display: flex; justify-content: space-around; background: #eff6ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+  .score-item { text-align: center; }
+  .score-val { font-size: 20px; font-weight: bold; color: var(--primary); }
+
+  /* カレンダー */
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .cal-header { font-size: 12px; color: #64748b; padding: 4px 0; }
+  .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid var(--border); background: #fff; font-size: 12px; cursor: pointer; }
+  .cal-day.state-ok { background: #dcfce7; border-color: #86efac; color: #166534; font-weight: bold; }
+  .cal-day.state-ng { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+
+  .comment-box textarea { width: 100%; height: 80px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; resize: none; margin-top: 8px; }
+
+  /* 集計表（マトリクス） */
+  .matrix-wrapper { overflow-x: auto; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
+  table { border-collapse: collapse; font-size: 12px; width: 100%; }
+  th, td { padding: 8px 6px; text-align: center; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  
+  /* 左列固定（Sticky） */
+  .col-title { position: sticky; left: 0; background: #fff; z-index: 2; width: 90px; max-width: 90px; text-align: left; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+  .col-curr { position: sticky; left: 90px; background: #fff; z-index: 2; width: 45px; }
+  .col-total { position: sticky; left: 135px; background: #fff; z-index: 2; width: 45px; border-right: 2px solid #cbd5e1; }
+  th.col-title, th.col-curr, th.col-total { background: #f1f5f9; z-index: 3; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <button id="btnTabSingle" class="active" onclick="switchView('single')">個別習慣</button>
+  <button id="btnTabMatrix" onclick="switchView('matrix')">全体集計表</button>
+</div>
+
+<div class="container">
+  <!-- 個別習慣画面 -->
+  <div id="viewSingle">
+    <div class="habit-tabs" id="habitTabs"></div>
+    
+    <div class="card">
+      <div class="header-area">
+        <h2 id="habitTitle" style="font-size: 18px;">習慣名</h2>
+        <div class="month-picker">
+          <span onclick="changeMonth(-1)" style="cursor:pointer">◀</span>
+          <span id="currentMonthLabel">2026年10月</span>
+          <span onclick="changeMonth(1)" style="cursor:pointer">▶</span>
+        </div>
+      </div>
+
+      <div class="score-box">
+        <div class="score-item"><div>目標得点</div><div class="score-val" id="targetScore">25</div></div>
+        <div class="score-item"><div>現在の得点</div><div class="score-val" id="currScore">0</div></div>
+        <div class="score-item"><div>累計得点</div><div class="score-val" id="totalScore">0</div></div>
+      </div>
+
+      <div class="calendar-grid" id="calendar"></div>
+
+      <div class="comment-box" style="margin-top: 16px;">
+        <label style="font-size: 13px; font-weight: bold;">当月のコメント・メモ</label>
+        <textarea id="habitComment" placeholder="気づきや振り返りを入力..." oninput="saveComment()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全体集計表画面 -->
+  <div id="viewMatrix" style="display: none;">
+    <div style="margin-bottom: 8px; font-weight: bold; font-size: 14px;" id="matrixMonthLabel"></div>
+    <div class="matrix-wrapper">
+      <table id="matrixTable"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 初期習慣10個の設定
+  const HABITS = [
+    { id: 1, title: "読書30分", target: 25 },
+    { id: 2, title: "ストレッチ", target: 28 },
+    { id: 3, title: "水分2L", target: 30 },
+    { id: 4, title: "散歩20分", target: 20 },
+    { id: 5, title: "筋トレ", target: 15 },
+    { id: 6, title: "日記を書く", target: 25 },
+    { id: 7, title: "7時間睡眠", target: 25 },
+    { id: 8, title: "砂糖断ち", target: 20 },
+    { id: 9, title: "英会話10分", target: 20 },
+    { id: 10, title: "部屋の片付け", target: 25 }
+  ];
+
+  let currentHabitIndex = 0;
+  let currentDate = new Date(2026, 9, 1); // 2026年10月
+
+  // ストレージからデータ取得
+  function loadData() {
+    return JSON.parse(localStorage.getItem('habit_tracker_data') || '{"records":{}, "comments":{}}');
+  }
+
+  function saveData(data) {
+    localStorage.setItem('habit_tracker_data', JSON.stringify(data));
+  }
+
+  function getKey(year, month, habitId) {
+    return `${year}-${String(month + 1).padStart(2, '0')}_${habitId}`;
+  }
+
+  // 画面切り替え
+  function switchView(type) {
+    document.getElementById('viewSingle').style.display = type === 'single' ? 'block' : 'none';
+    document.getElementById('viewMatrix').style.display = type === 'matrix' ? 'block' : 'none';
+    document.getElementById('btnTabSingle').className = type === 'single' ? 'active' : '';
+    document.getElementById('btnTabMatrix').className = type === 'matrix' ? 'active' : '';
+    if (type === 'matrix') renderMatrix();
+  }
+
+  function changeMonth(delta) {
+    currentDate.setMonth(currentDate.getMonth() + delta);
+    renderSingle();
+  }
+
+  // 個別画面レンダリング
+  function renderSingle() {
+    const habit = HABITS[currentHabitIndex];
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    document.getElementById('habitTitle').innerText = habit.title;
+    document.getElementById('currentMonthLabel').innerText = `${year}年${month + 1}月`;
+    document.getElementById('targetScore').innerText = habit.target;
+
+    // タブレンダリング
+    const tabsContainer = document.getElementById('habitTabs');
+    tabsContainer.innerHTML = '';
+    HABITS.forEach((h, idx) => {
+      const btn = document.createElement('button');
+      btn.className = `habit-chip ${idx === currentHabitIndex ? 'active' : ''}`;
+      btn.innerText = h.title;
+      btn.onclick = () => { currentHabitIndex = idx; renderSingle(); };
+      tabsContainer.appendChild(btn);
+    });
+
+    const data = loadData();
+    const key = getKey(year, month, habit.id);
+    const monthRecords = data.records[key] || {};
+
+    // 得点計算（当月 & 累計）
+    let curr = 0;
+    Object.values(monthRecords).forEach(v => { if (v === 1) curr++; });
+    document.getElementById('currScore').innerText = curr;
+
+    let total = 0;
+    Object.keys(data.records).forEach(k => {
+      if (k.endsWith(`_${habit.id}`)) {
+        Object.values(data.records[k]).forEach(v => { if (v === 1) total++; });
+      }
+    });
+    document.getElementById('totalScore').innerText = total;
+
+    // コメント設定
+    document.getElementById('habitComment').value = (data.comments && data.comments[key]) || '';
+
+    // カレンダー構築
+    const calEl = document.getElementById('calendar');
+    calEl.innerHTML = '';
+    ['日','月','火','水','木','金','土'].forEach(d => {
+      calEl.innerHTML += `<div class="cal-header">${d}</div>`;
+    });
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      calEl.innerHTML += `<div></div>`;
+    }
+
+    for (let day = 1; day <= lastDate; day++) {
+      const status = monthRecords[day] || 0; // 0:なし, 1:◯, -1:×
+      const cell = document.createElement('div');
+      cell.className = `cal-day ${status === 1 ? 'state-ok' : status === -1 ? 'state-ng' : ''}`;
+      cell.innerHTML = `<span>${day}</span><span style="font-size:10px;">${status === 1 ? '◯' : status === -1 ? '×' : '-'}</span>`;
+      
+      // タップで状態切り替え (なし -> ◯ -> × -> なし)
+      cell.onclick = () => {
+        let nextStatus = 0;
+        if (status === 0) nextStatus = 1;
+        else if (status === 1) nextStatus = -1;
+        else nextStatus = 0;
+
+        if (!data.records[key]) data.records[key] = {};
+        data.records[key][day] = nextStatus;
+        saveData(data);
+        renderSingle();
+      };
+      calEl.appendChild(cell);
+    }
+  }
+
+  function saveComment() {
+    const data = loadData();
+    const key = getKey(currentDate.getFullYear(), currentDate.getMonth(), HABITS[currentHabitIndex].id);
+    if (!data.comments) data.comments = {};
+    data.comments[key] = document.getElementById('habitComment').value;
+    saveData(data);
+  }
+
+  // 全体集計表レンダリング
+  function renderMatrix() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+    const data = loadData();
+
+    document.getElementById('matrixMonthLabel').innerText = `${year}年${month + 1}月 全体集計表`;
+
+    let html = '<thead><tr>';
+    html += '<th class="col-title">習慣項目</th><th class="col-curr">当月</th><th class="col-total">累計</th>';
+    for (let d = 1; d <= lastDate; d++) {
+      html += `<th>${d}</th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    HABITS.forEach(h => {
+      const key = getKey(year, month, h.id);
+      const monthRecs = data.records[key] || {};
+      
+      let curr = 0;
+      Object.values(monthRecs).forEach(v => { if (v === 1) curr++; });
+      
+      let total = 0;
+      Object.keys(data.records).forEach(k => {
+        if (k.endsWith(`_${h.id}`)) {
+          Object.values(data.records[k]).forEach(v => { if (v === 1) total++; });
+        }
+      });
+
+      html += `<tr>`;
+      html += `<td class="col-title">${h.title}</td>`;
+      html += `<td class="col-curr">${curr}</td>`;
+      html += `<td class="col-total">${total}</td>`;
+
+      for (let d = 1; d <= lastDate; d++) {
+        const val = monthRecs[d];
+        const mark = val === 1 ? '◯' : val === -1 ? '×' : '-';
+        const color = val === 1 ? '#166534' : val === -1 ? '#991b1b' : '#94a3b8';
+        html += `<td style="color:${color}; font-weight:${val !== 0 ? 'bold':'normal'};">${mark}</td>`;
+      }
+      html += `</tr>`;
+    });
+
+    html += '</tbody>';
+    document.getElementById('matrixTable').innerHTML = html;
+  }
+
+  renderSingle();
+</script>
+</body>
+</html>
